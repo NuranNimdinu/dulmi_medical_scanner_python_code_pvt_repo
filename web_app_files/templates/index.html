@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Foot Ulcer Detector</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 12h-4l-3 9L9 3l-3 9H2'/%3E%3C/svg%3E">
+
+    <style>
+        :root {
+            /* Clinical Dark Theme Variables */
+            --bg-color: #0f172a; /* Slate 900 */
+            --panel-bg: #1e293b; /* Slate 800 */
+            --border-color: #3b82f6; /* Medical Blue */
+            --accent-color: #10b981; /* Emerald/Monitor Green */
+            --text-color: #f8fafc; /* Slate 50 */
+            --text-muted: #94a3b8;
+            --alert-color: #ef4444; /* Clinical Red */
+            --font-main: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --radius-smooth: 12px;
+        }
+
+        /* Set up the viewport to be a non-scrolling full-height app */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            overflow: hidden; 
+        }
+
+        /* Flexbox column layout taking up exactly the full viewport */
+        .hud-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            padding: 16px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Controls Section at the Top */
+        .control-panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: var(--radius-smooth);
+            padding: 16px 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            padding-bottom: 12px;
+        }
+
+        /* Left Header Group (Icons + Title) */
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Icon Buttons */
+        .icon-btn {
+            background: transparent;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: var(--text-muted);
+            padding: 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .icon-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--border-color);
+            border-color: var(--border-color);
+            box-shadow: none;
+        }
+        
+        .icon-btn.btn-power:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--alert-color);
+            border-color: var(--alert-color);
+        }
+
+        .icon-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Clean medical title text */
+        .main-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+            color: #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 8px; /* Space from icons */
+        }
+
+        .main-title::before {
+            content: '';
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background-color: var(--border-color);
+            border-radius: 50%;
+        }
+
+        /* Loading / Connecting Status Container */
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* Clinical Spinner */
+        .medical-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(16, 185, 129, 0.2);
+            border-top-color: var(--accent-color);
+            border-radius: 50%;
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        .row-layout {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+
+        button {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--border-color);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.85em;
+            cursor: pointer;
+            font-weight: 600;
+            font-family: var(--font-main);
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: var(--border-color);
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Distinct styling for the Save/START button */
+        .btn-save {
+            color: var(--accent-color);
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .btn-save:hover {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: #0f172a;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-danger {
+            color: var(--alert-color);
+            border-color: rgba(239, 68, 68, 0.5);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .btn-danger:hover {
+            background: var(--alert-color);
+            border-color: var(--alert-color);
+            color: #ffffff;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Distinct styling for the Live Feed button's active state */
+        .btn-live.active {
+            background: var(--alert-color);
+            color: #ffffff;
+            border-color: var(--alert-color);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-live.active:hover {
+            background: #dc2626; /* Darker red */
+            border-color: #dc2626;
+            box-shadow: 0 0 16px rgba(239, 68, 68, 0.6);
+        }
+
+        /* Central Result Box styling */
+        .result-box {
+            flex-grow: 1;
+            margin: 0 24px;
+            padding: 8px 16px;
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--accent-color);
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 1.5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .led-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Container for camera feeds - Flexbox handles 3 items easily */
+        .feeds-container {
+            display: flex;
+            gap: 16px;
+            flex-grow: 1; 
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Smart Camera Feed Container */
+        .feed-wrapper {
+            position: relative;
+            background: #020617; /* Very dark background for feeds */
+            border: 1px solid #334155;
+            border-radius: var(--radius-smooth);
+            flex: 1; /* Makes all 3 wrappers take equal space */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* Grid background for empty state */
+        .feed-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Adaptive Image Scaling */
+        .feed-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; 
+            display: block;
+            z-index: 1;
+        }
+
+        .feed-img:not([src]), .feed-img[src=""] {
+            opacity: 0;
+        }
+
+        .offline-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 6, 23, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: var(--alert-color);
+            font-weight: 600;
+            letter-spacing: 1px;
+            font-size: 0.95em;
+            display: flex; 
+            z-index: 2;
+            text-align: center;
+            animation: pulse-alert 2.5s infinite alternate;
+        }
+
+        /* Feed Labels */
+        .feed-label {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(15, 23, 42, 0.8);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            z-index: 3;
+            border: 1px solid #334155;
+        }
+        
+        /* Modal Settings Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 23, 0.8);
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-smooth);
+            width: 500px;
+            max-width: 90%;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .modal-header {
+            font-size: 1.2em;
+            font-weight: 700;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            padding-bottom: 12px;
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .settings-container {
+            max-height: 50vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 8px;
+        }
+        
+        /* Scrollbar for settings */
+        .settings-container::-webkit-scrollbar { width: 6px; }
+        .settings-container::-webkit-scrollbar-track { background: transparent; }
+        .settings-container::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 3px; }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 10px 14px;
+            border-radius: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .setting-item label {
+            font-size: 0.9em;
+            font-weight: 500;
+            color: var(--text-color);
+            text-transform: capitalize;
+        }
+        
+        .setting-item input[type="text"], .setting-item input[type="number"] {
+            background: var(--bg-color);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: var(--text-color);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            width: 150px;
+        }
+        
+        .setting-item input[type="checkbox"] {
+            width: 18px; height: 18px;
+            accent-color: var(--border-color);
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            padding-top: 16px;
+            margin-top: 8px;
+        }
+        
+        .modal-footer .right-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Animations */
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes pulse-alert {
+            0% { opacity: 0.8; }
+            100% { opacity: 1; text-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud-container">
+        <div class="control-panel">
+            <header>
+                <div class="header-left">
+                    <!-- Power Button -->
+                    <button class="icon-btn btn-power" onclick="powerOffSystem()" title="Power Off">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                            <line x1="12" y1="2" x2="12" y2="12"></line>
+                        </svg>
+                    </button>
+                    <!-- Settings Button -->
+                    <button class="icon-btn" onclick="openSettings()" title="Settings">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    <!-- File Manager Button -->
+                    <button class="icon-btn" onclick="openFileManager()" title="File Manager">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </button>
+                    <!-- Updated Title -->
+                    <span class="main-title">Foot Ulcer Detector</span>
+                </div>
+                
+                <div class="status-container">
+                    <div class="medical-spinner" id="loader"></div>
+                    <span id="ws_con" style="color: var(--text-muted);">INITIALIZING...</span>
+                </div>
+            </header>
+
+            <div class="row-layout">
+                <button onclick="captureScans()" class="btn-save">START</button>
+                <button onclick="toggleLiveFeed()" id="btn-live" class="btn-live">LIVE FEED</button>
+                
+                <!-- Central Result Display Box -->
+                <div id="scan-result" class="result-box">
+                    AWAITING SCAN RESULT...
+                </div>
+                
+                <div class="led-container" style="margin-left: auto;">
+                    <span class="status-text">Ready!</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="feeds-container">
+            <!-- Feed 1: Left Thermal Cam -->
+            <div class="feed-wrapper">
+                <div class="feed-label">Left Thermal Cam</div>
+                <img id="img-t1" class="feed-img">
+                <div id="offline-t1" class="offline-overlay">
+                    NO SIGNAL DETECTED
+                </div>
+            </div>
+            
+            <!-- Feed 2: RGB Cam -->
+            <div class="feed-wrapper">
+                <div class="feed-label">RGB Cam</div>
+                <img id="img-cr" class="feed-img">
+                <div id="offline-cr" class="offline-overlay">
+                    NO SIGNAL DETECTED
+                </div>
+            </div>
+            
+            <!-- Feed 3: Right Thermal Cam -->
+            <div class="feed-wrapper">
+                <div class="feed-label">Right Thermal Cam</div>
+                <img id="img-t2" class="feed-img">
+                <div id="offline-t2" class="offline-overlay">
+                    NO SIGNAL DETECTED
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal Overlay -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                System Settings
+            </div>
+            
+            <!-- Dynamic Content Injected Here -->
+            <div id="settings-content" class="settings-container">
+                <div style="color: var(--text-muted); font-size: 0.9em; text-align: center; padding: 20px;">Waiting for configuration...</div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-danger" onclick="restartSystem()">Restart Program</button>
+                <div class="right-actions">
+                    <button onclick="closeSettings()" style="color: var(--text-muted); border-color: rgba(148, 163, 184, 0.4);">Cancel</button>
+                    <button class="btn-save" onclick="saveSettings()">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const websocketAddress = `ws://${window.location.hostname}:8000`;
+        let ws_status = document.getElementById("ws_con");
+        let loader = document.getElementById("loader");
+        
+        // Element bindings for 3 feeds
+        let imgT1 = document.getElementById("img-t1");
+        let offlineT1 = document.getElementById("offline-t1");
+        
+        let imgCR = document.getElementById("img-cr");
+        let offlineCR = document.getElementById("offline-cr");
+        
+        let imgT2 = document.getElementById("img-t2");
+        let offlineT2 = document.getElementById("offline-t2");
+        
+        let scanResultBox = document.getElementById("scan-result");
+        let settingsContent = document.getElementById("settings-content");
+        
+        let websocket = null;
+        let isLiveFeedActive = false; 
+        let latestSettingsData = null; // Store parsed JSON settings
+        
+        // Timeout trackers
+        let lastReceivedT1 = Date.now();
+        let lastReceivedCR = Date.now();
+        let lastReceivedT2 = Date.now();
+        const TIMEOUT_THRESHOLD = 10000; 
+
+        function connectWS() {
+            websocket = new WebSocket(websocketAddress);
+            loader.style.display = "inline-block"; 
+
+            websocket.onopen = function () {
+                ws_status.innerHTML = "SYSTEM ONLINE";
+                ws_status.style.color = "var(--accent-color)";
+                loader.style.display = "none"; 
+                
+                // Fetch settings on connect (optional)
+                websocket.send(JSON.stringify({"T": "GET_SETTINGS"}));
+                
+                let btn = document.getElementById("btn-live");
+                isLiveFeedActive = true;
+                btn.classList.add("active");
+                camon();
+            };
+
+            websocket.onclose = function () {
+                ws_status.innerHTML = "CONNECTION LOST...";
+                ws_status.style.color = "#f59e0b";
+                loader.style.display = "inline-block";
+                
+                isLiveFeedActive = false;
+                document.getElementById("btn-live").classList.remove("active");
+                
+                // Show offline overlay for all feeds
+                offlineT1.style.display = "flex";
+                offlineCR.style.display = "flex";
+                offlineT2.style.display = "flex";
+                
+                imgT1.removeAttribute('src'); 
+                imgCR.removeAttribute('src'); 
+                imgT2.removeAttribute('src'); 
+                
+                setTimeout(connectWS, 5000);
+            };
+
+            websocket.onmessage = function (evt) {
+                if (evt.data instanceof Blob) {
+                    evt.data.text().then(processData);
+                } else {
+                    processData(evt.data);
+                }
+
+                function processData(data) {
+                    try {
+                        let parsedData = JSON.parse(data);
+                        handle_rx_msg(parsedData);
+                    } catch(e) {
+                        // Assuming binary image strings start with 2-char ID
+                        let type = data.slice(0,2);
+                        
+                        if (type === 'tl') {
+                            lastReceivedT1 = Date.now();
+                            offlineT1.style.display = "none";
+                            imgT1.src = "data:image/jpeg;base64," + data.slice(2);
+                        } 
+                        else if (type === 'cr') {
+                            lastReceivedCR = Date.now();
+                            offlineCR.style.display = "none";
+                            imgCR.src = "data:image/jpeg;base64," + data.slice(2);
+                        }
+                        else if (type === 'tr') {
+                            lastReceivedT2 = Date.now();
+                            offlineT2.style.display = "none";
+                            imgT2.src = "data:image/jpeg;base64," + data.slice(2);
+                        }
+                    }
+                }
+            };
+        }
+
+        function handle_rx_msg(msg){
+            if (msg.T == "STATUS"){
+                document.querySelector('.status-text').innerText = msg.DATA;
+            }
+            
+            if (msg.T == "RESULT"){
+                if(msg.DATA) 
+                    scanResultBox.innerText = msg.DATA;
+                else if(msg.RISK)
+                    scanResultBox.style.color = msg.PASS ? "var(--alert-color)" : "var(--accent-color)";
+                else if(msg.START)
+                    scanResultBox.innerText = "AWAITING SCAN RESULT...";
+            }
+            
+            // Route SETTINGS data to parsing function
+            if (msg.T == "SETTINGS") {
+                parseSettings(msg);
+            }
+        }
+
+        // Loop to check camera dropouts
+        setInterval(() => {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                let now = Date.now();
+                
+                if (now - lastReceivedT1 > TIMEOUT_THRESHOLD) {
+                    offlineT1.style.display = "flex";
+                    imgT1.removeAttribute('src');
+                }
+                if (now - lastReceivedCR > TIMEOUT_THRESHOLD) {
+                    offlineCR.style.display = "flex";
+                    imgCR.removeAttribute('src');
+                }
+                if (now - lastReceivedT2 > TIMEOUT_THRESHOLD) {
+                    offlineT2.style.display = "flex";
+                    imgT2.removeAttribute('src');
+                }
+            }
+        }, 1000);
+
+        function camon() { 
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({"T": "LIVE"})); 
+            }
+        }
+        
+        function toggleLiveFeed() {
+            let btn = document.getElementById("btn-live");
+            isLiveFeedActive = !isLiveFeedActive;
+            
+            if (isLiveFeedActive) {
+                btn.classList.add("active");
+                camon(); 
+            } else {
+                btn.classList.remove("active");
+                camon(); 
+            }
+        }
+        
+        function captureScans() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                scanResultBox.innerText = "SCANNING..."; 
+                scanResultBox.style.color = "#f59e0b"; 
+                websocket.send(JSON.stringify({"T": "START"}));
+            } else {
+                alert("Cannot Start: System is offline.");
+            }
+        }
+
+        /* ----- System Header Button Functions ----- */
+        function powerOffSystem() {
+            if(confirm("WARNING: Are you sure you want to power down the detector system?")) {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({"T": "POWER"}));
+                }
+            }
+        }
+
+        function openFileManager() {
+            console.log("File Manager opened");
+            // Placeholder for File Manager logic
+        }
+
+        /* ----- Settings Modal & Parser Logic ----- */
+        function openSettings() {
+            document.getElementById("settings-modal").style.display = "flex";
+            // Send request to server for latest settings just in case
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({"T": "GET_SETTINGS"}));
+            }
+        }
+        
+        function closeSettings() {
+            document.getElementById("settings-modal").style.display = "none";
+        }
+        
+        // Parse incoming SETTINGS JSON and build dynamic form inputs
+        function parseSettings(msg) {
+            latestSettingsData = msg; // Cache full object
+            settingsContent.innerHTML = ""; // Clear existing
+            
+            let hasKeys = false;
+            for (let key in msg) {
+                if (key === 'T') continue; // Ignore the type identifier
+                
+                hasKeys = true;
+                let div = document.createElement('div');
+                div.className = 'setting-item';
+                
+                let label = document.createElement('label');
+                label.innerText = key.replace(/_/g, ' '); // Clean up underscores for display
+                
+                let input = document.createElement('input');
+                input.id = 'cfg-' + key;
+                
+                // Assign correct input type based on JSON value type
+                if (typeof msg[key] === 'boolean') {
+                    input.type = 'checkbox';
+                    input.checked = msg[key];
+                } else if (typeof msg[key] === 'number') {
+                    input.type = 'number';
+                    input.value = msg[key];
+                } else {
+                    input.type = 'text';
+                    input.value = msg[key];
+                }
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                settingsContent.appendChild(div);
+            }
+            
+            if(!hasKeys) {
+                settingsContent.innerHTML = '<div style="color: var(--text-muted); text-align: center;">No configuration parameters received.</div>';
+            }
+        }
+        
+        // Save dynamically generated settings back to the object and send
+        function saveSettings() {
+            if (!latestSettingsData) return;
+            
+            for (let key in latestSettingsData) {
+                if (key === 'T') continue;
+                
+                let input = document.getElementById('cfg-' + key);
+                if (input) {
+                    if (input.type === 'checkbox') {
+                        latestSettingsData[key] = input.checked;
+                    } else if (input.type === 'number') {
+                        latestSettingsData[key] = Number(input.value);
+                    } else {
+                        latestSettingsData[key] = input.value;
+                    }
+                }
+            }
+            
+            // Send entire object back over websocket
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify(latestSettingsData));
+                console.log("Settings Saved:", latestSettingsData);
+            }
+            closeSettings();
+        }
+
+        function restartSystem() {
+            if (confirm("Are you sure you want to RESTART the system program?")) {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({"T": "RESTART"}));
+                    closeSettings(); // close menu on confirm
+                }
+            }
+        }
+
+        connectWS();
+    </script>
+</body>
+</html>

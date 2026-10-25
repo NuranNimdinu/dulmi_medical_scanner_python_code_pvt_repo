@@ -1,0 +1,12 @@
+{
+    "T": "SETTINGS",
+    "SCAN_SAVE_IMGS_NUM": 10,
+    "SCAN_TIME_INTERVAL_SEC": 1,
+    "MIN_TEMP": 20.0,
+    "MAX_TEMP": 40.0,
+    "THERMAL_MODEL_THREAHOLD": 0.5,
+    "RGB_MODEL_THREAHOLD": 0.5,
+    "THERMAL_MODEL_PATH": "/home/rasp3/project/image_models/best_thermal_model.keras",
+    "RGB_MODEL_PATH": "/home/rasp3/project/image_models/dfu_resnet50_model.keras",
+    "save_images_base_path": "medical_scanner_data/"
+}
