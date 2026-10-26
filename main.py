@@ -44,11 +44,6 @@ global_settings = {
     "save_images_base_path" : "medical_scanner_data/",
 }
 
-thermal_camera_L = MLX90640_CAM_DRIVER(0x32, "L")
-thermal_camera_R = MLX90640_CAM_DRIVER(0x33, "R")
-rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
-rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
-
 
 class SERVER_DATA_STRUCT:
     ws_client_connected = False
@@ -57,8 +52,6 @@ class SERVER_DATA_STRUCT:
     ws_camera_stream_task:asyncio.Task
     wss_camera_feed_q = queue.Queue(maxsize=10)
     wss_data_tx_q = queue.Queue(maxsize=10)
-
-server_data = SERVER_DATA_STRUCT()
 
 
 ### useful functions
@@ -274,7 +267,7 @@ class ImageProcessWorker(threading.Thread):
     def _done_scan(self):
         self.is_scanning = False 
 
-        if self.current_scan_max_thermal_conf_L >= global_settings["THERMAL_MODEL_THREAHOLD"] or self.current_scan_max_thermal_conf_R >= global_settings["THERMAL_MODEL_THREAHOLD"] or self.current_scan_max_rgb_conf_L >= global_settings["RGB_MODEL_THREAHOLD"] or self.current_scan_max_rgb_conf_R >= global_settings["RGB_MODEL_THREAHOLD"]:
+        if (self.current_scan_max_thermal_conf_L >= global_settings["THERMAL_MODEL_THREAHOLD"]) or (self.current_scan_max_thermal_conf_R >= global_settings["THERMAL_MODEL_THREAHOLD"]) or (self.current_scan_max_rgb_conf_L >= global_settings["RGB_MODEL_THREAHOLD"]) or (self.current_scan_max_rgb_conf_R >= global_settings["RGB_MODEL_THREAHOLD"]):
             ws_tx_str(json.dumps({"T":"RESULT", "DATA": "DM / High Risk (Ulcer)"}))
             ws_tx_str(json.dumps({"T":"RESULT", "RISK": 0}))
 
@@ -507,6 +500,7 @@ def check_app_ready():
         time.sleep(1)
 
     led.set_static_color(0x008000)
+    set_gpio(4, True)
 
 # Dictionary to keep the pin connections alive in memory
 _active_pins = {}
@@ -528,31 +522,47 @@ def set_gpio(pin_num, turn_on):
 
 if __name__ == "__main__":
     time.sleep(0.5)
+    
+    ## looking for program updates at startup
     check_for_updates_and_restart()
     print("Starting Medical App...")
 
+    ## initialize the LED indicator
     led = WS2812BThread(pin_num=18, num_leds=2)
     led.set_static_color(0xFFFF00)
     led.start()
     time.sleep(0.5)
-    set_gpio(4, True)
     
+    ## initialize the cameras
+    thermal_camera_L = MLX90640_CAM_DRIVER(0x32, "L")
+    thermal_camera_R = MLX90640_CAM_DRIVER(0x33, "R")
+    rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
+    rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
+
+    ## initialize the server data structure
+    server_data = SERVER_DATA_STRUCT()
+
+    ## load and sync settings from JSON file
     json_cfg = JsonConfigManager(global_settings, "saved_settings.json")
     json_cfg.load_and_sync()
 
+    ## initialize the threads
     push_btn = ButtonMonitor()
     image_proc_tsk_handler = ImageProcessWorker(server_data)
     flask_app_thread = threading.Thread(target=run_web_app, daemon=True)
     device_controller_th = threading.Thread(target=controller_thread, daemon=True)
 
+    ## setup the push buttons
     push_btn.add_button(pin=14, pull_state="UP")
     push_btn.add_button(pin=15, pull_state="UP")
 
+    ## start the threads
     push_btn.start()
     device_controller_th.start()
     image_proc_tsk_handler.start()
     flask_app_thread.start()
     
+    ## wait for the web app to be ready before signaling the system is ready
     check_app_ready_th = threading.Thread(target=check_app_ready, daemon=True)
     check_app_ready_th.start()
 
