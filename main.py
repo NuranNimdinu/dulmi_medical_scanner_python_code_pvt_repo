@@ -15,6 +15,7 @@ import threading
 import os
 import re
 import sys
+import subprocess
 from gpiozero import DigitalOutputDevice
 
 import tensorflow as tf
@@ -225,10 +226,10 @@ class ImageProcessWorker(threading.Thread):
             ## send to the web app
             if self._ws_server.ws_camera_stream_on:
                 try:
-                    for img in img_arr:
+                    for x, img in enumerate(img_arr): # <-- Added parentheses around img_arr
                         _, img_buf = cv2.imencode('.jpg', img)
                         img_buf = base64.b64encode(img_buf)
-                        img_buf  = img_head_tag[img_arr.index(img)].encode() + img_buf
+                        img_buf = img_head_tag[x].encode() + img_buf
                         self._ws_server.wss_camera_feed_q.put_nowait(img_buf)
                 
                 except queue.Full:
