@@ -20,7 +20,7 @@ class CAMERA_DRIVER:
 
         if self.USE_PICAMERA:
             from picamera2 import Picamera2
-            self.picam2 = Picamera2(camera=cameraID)
+            self.picam2 = Picamera2(cameraID)
             picamconfig = self.picam2.create_video_configuration(main={"size": resolution})
             self.picam2.configure(picamconfig)
             self.picam2.start()
