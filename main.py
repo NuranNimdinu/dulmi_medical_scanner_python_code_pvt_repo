@@ -45,8 +45,8 @@ global_settings = {
 
 thermal_camera_L = MLX90640_CAM_DRIVER(0x32, "L")
 thermal_camera_R = MLX90640_CAM_DRIVER(0x33, "R")
-rgb_cameraL = CAMERA_DRIVER((1280, 720), raspCam=True, cameraID=0)
-rgb_camera = CAMERA_DRIVER((1280, 720), raspCam=True, cameraID=1)
+rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
+rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=1)
 
 
 class SERVER_DATA_STRUCT:
@@ -54,8 +54,8 @@ class SERVER_DATA_STRUCT:
     ws_camera_stream_on = False
     ws_client_handler:websockets.ServerConnection
     ws_camera_stream_task:asyncio.Task
-    wss_camera_feed_q = queue.Queue(maxsize=5)
-    wss_data_tx_q = queue.Queue(maxsize=5)
+    wss_camera_feed_q = queue.Queue(maxsize=10)
+    wss_data_tx_q = queue.Queue(maxsize=10)
 
 server_data = SERVER_DATA_STRUCT()
 
@@ -152,6 +152,37 @@ class JsonConfigManager:
             self.save()
             print(f"[{self.file_path}] Keys synced and file updated.")
 
+def check_for_updates_and_restart():
+    print("Checking GitHub for updates...")
+    try:
+        # 1. Fetch the latest info from the remote repository
+        subprocess.run(["git", "fetch", "--all"], check=True, capture_output=True)
+        
+        # 2. Check if the local branch is behind the remote branch
+        status = subprocess.run(["git", "status", "-uno"], capture_output=True, text=True)
+        
+        if "Your branch is behind" in status.stdout:
+            print("Update found! Downloading latest code...")
+            
+            # 3. Force update to exactly match the remote (prevents merge conflicts)
+            # CHANGE 'main' TO 'master' if your repo uses the older naming!
+            subprocess.run(["git", "reset", "--hard", "origin/main"], check=True)
+            
+            print("Update complete. Restarting program to apply changes...")
+            
+            # 4. Instantly restart the Python script so the new code runs
+            try:
+                os.closerange(3, 65535) # Close ports just like your restart function
+            except:
+                pass
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+            
+        else:
+            print("App is fully up to date. Starting normally...")
+            
+    except Exception as e:
+        print(f"Failed to check for updates: {e}")
+        print("Continuing with the current version...")
 #####################
 
 ### image hanlder thread
@@ -161,7 +192,8 @@ class ImageProcessWorker(threading.Thread):
     current_scan_count = 0
     current_scan_max_thermal_conf_L = 0.0
     current_scan_max_thermal_conf_R = 0.0
-    current_scan_max_rgb_conf = 0.0
+    current_scan_max_rgb_conf_L = 0.0
+    current_scan_max_rgb_conf_R = 0.0
 
     is_scanning = False
 
@@ -184,27 +216,20 @@ class ImageProcessWorker(threading.Thread):
             th_img_L = thermal_camera_L.get_image_with_temp_grd()
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
 
-            _, rgb_img = rgb_camera.capture()
+            _, rgb_img_L = rgb_cameraL.capture()
+            _, rgb_img_R = rgb_cameraR.capture()
+
+            img_arr = [th_img_L, th_img_R, rgb_img_L, rgb_img_R]
+            img_head_tag = ["tl", "tr", "cl", "cr"]
 
             ## send to the web app
             if self._ws_server.ws_camera_stream_on:
                 try:
-                    if th_img_L is not None:
-                        ret, th_buf = cv2.imencode('.jpg', th_img_L)
-                        th_buf = base64.b64encode(th_buf)
-                        th_buf  = b"tl" + th_buf
-                        self._ws_server.wss_camera_feed_q.put_nowait(th_buf)
-                    
-                    if th_img_R is not None:
-                        ret, th_buf = cv2.imencode('.jpg', th_img_R)
-                        th_buf = base64.b64encode(th_buf)
-                        th_buf  = b"tr" + th_buf
-                        self._ws_server.wss_camera_feed_q.put_nowait(th_buf)
-
-                    ret, rgb_buf = cv2.imencode('.jpg', rgb_img)
-                    rgb_buf = base64.b64encode(rgb_buf)
-                    rgb_buf = b"cr" + rgb_buf
-                    self._ws_server.wss_camera_feed_q.put_nowait(rgb_buf)
+                    for img in img_arr:
+                        _, img_buf = cv2.imencode('.jpg', img)
+                        img_buf = base64.b64encode(img_buf)
+                        img_buf  = img_head_tag[img_arr.index(img)].encode() + img_buf
+                        self._ws_server.wss_camera_feed_q.put_nowait(img_buf)
                 
                 except queue.Full:
                     pass
@@ -213,13 +238,15 @@ class ImageProcessWorker(threading.Thread):
                 led.blink(0xffffff, 0.1, 2)
                 self.save_capture_data()
 
-                thermal_label_L, thermal_conf_L, thermal_prob_L = self.thermal_predictor.predict(thermal_camera_L.temp_raw_frame, True, self.current_scan_num_folder_path, "T")
-                thermal_label_R, thermal_conf_R, thermal_prob_R = self.thermal_predictor.predict(thermal_camera_R.temp_raw_frame, True, self.current_scan_num_folder_path, "T")
-                rgb_label, rgb_conf, rgb_prob = self.rgb_predictor.predict(rgb_img, True, self.current_scan_num_folder_path, "RGB")
+                thermal_label_L, thermal_conf_L, thermal_prob_L = self.thermal_predictor.predict(thermal_camera_L.temp_raw_frame, True, self.current_scan_num_folder_path, "TL")
+                thermal_label_R, thermal_conf_R, thermal_prob_R = self.thermal_predictor.predict(thermal_camera_R.temp_raw_frame, True, self.current_scan_num_folder_path, "TR")
+                rgb_label_L, rgb_conf_L, rgb_prob_L = self.rgb_predictor.predict(rgb_img_L, True, self.current_scan_num_folder_path, "RGBL")
+                rgb_label_R, rgb_conf_R, rgb_prob_R = self.rgb_predictor.predict(rgb_img_R, True, self.current_scan_num_folder_path, "RGBR")
 
                 self.current_scan_max_thermal_conf_L = thermal_conf_L >= self.current_scan_max_thermal_conf_L if thermal_conf_L else self.current_scan_max_thermal_conf_L
                 self.current_scan_max_thermal_conf_R = thermal_conf_R >= self.current_scan_max_thermal_conf_R if thermal_conf_R else self.current_scan_max_thermal_conf_R
-                self.current_scan_max_rgb_conf = rgb_conf >= self.current_scan_max_rgb_conf if rgb_conf else self.current_scan_max_rgb_conf
+                self.current_scan_max_rgb_conf_L = rgb_conf_L >= self.current_scan_max_rgb_conf_L if rgb_conf_L else self.current_scan_max_rgb_conf_L
+                self.current_scan_max_rgb_conf_R = rgb_conf_R >= self.current_scan_max_rgb_conf_R if rgb_conf_R else self.current_scan_max_rgb_conf_R
 
                 if self.current_scan_count >= global_settings["SCAN_SAVE_IMGS_NUM"]:
                     self._done_scan()
@@ -229,14 +256,16 @@ class ImageProcessWorker(threading.Thread):
             time.sleep(0.05)
 
     def start_scan(self):
-        ws_tx_str(json.dumps({"T":"STATUS", "DATA": f"Scan Starting..."}))
+        ws_tx_str(json.dumps({"T":"STATUS", "DATA": "Scan Starting..."}))
         ws_tx_str(json.dumps({"T":"RESULT", "START": ""}))
         led.set_static_color(0xff0088)
 
         self.current_scan_folder_path = create_unique_folder(global_settings["save_images_base_path"], "patient")
         self.current_scan_count = 0
-        self.current_scan_max_thermal_conf = 0.0
-        self.current_scan_max_rgb_conf = 0.0
+        self.current_scan_max_thermal_conf_L = 0.0
+        self.current_scan_max_thermal_conf_R = 0.0
+        self.current_scan_max_rgb_conf_L = 0.0
+        self.current_scan_max_rgb_conf_R = 0.0
 
         time.sleep(1)
         self.is_scanning = True
@@ -244,7 +273,7 @@ class ImageProcessWorker(threading.Thread):
     def _done_scan(self):
         self.is_scanning = False 
 
-        if self.current_scan_max_thermal_conf_L >= global_settings["THERMAL_MODEL_THREAHOLD"] or self.current_scan_max_thermal_conf_R >= global_settings["THERMAL_MODEL_THREAHOLD"] or self.current_scan_max_rgb_conf >= global_settings["RGB_MODEL_THREAHOLD"]:
+        if self.current_scan_max_thermal_conf_L >= global_settings["THERMAL_MODEL_THREAHOLD"] or self.current_scan_max_thermal_conf_R >= global_settings["THERMAL_MODEL_THREAHOLD"] or self.current_scan_max_rgb_conf_L >= global_settings["RGB_MODEL_THREAHOLD"] or self.current_scan_max_rgb_conf_R >= global_settings["RGB_MODEL_THREAHOLD"]:
             ws_tx_str(json.dumps({"T":"RESULT", "DATA": "DM / High Risk (Ulcer)"}))
             ws_tx_str(json.dumps({"T":"RESULT", "RISK": 0}))
 
@@ -252,10 +281,10 @@ class ImageProcessWorker(threading.Thread):
             ws_tx_str(json.dumps({"T":"RESULT", "DATA": "Control / Healthy"}))
             ws_tx_str(json.dumps({"T":"RESULT", "RISK": 1}))
 
-        ws_tx_str(json.dumps({"T":"STATUS", "DATA": f"Scan Completed!"}))
+        ws_tx_str(json.dumps({"T":"STATUS", "DATA": "Scan Completed!"}))
         time.sleep(3)
         led.set_static_color(0x008000)
-        ws_tx_str(json.dumps({"T":"STATUS", "DATA": f"Ready!"}))
+        ws_tx_str(json.dumps({"T":"STATUS", "DATA": "Ready!"}))
 
     def save_capture_data(self):
         self.current_scan_count += 1
@@ -275,9 +304,13 @@ class ImageProcessWorker(threading.Thread):
         thermal_camera_R.save_raw_csv()
         thermal_camera_R.save_temp_png()
 
-        rgb_camera.change_image_save_path(filepath, filepath)
-        rgb_camera.save_image_png()
-        rgb_camera.save_intensity_matrix()
+        rgb_cameraL.change_image_save_path(filepath, filepath)
+        rgb_cameraL.save_image_png("L_")
+        rgb_cameraL.save_intensity_matrix()
+        
+        rgb_cameraR.change_image_save_path(filepath, filepath)
+        rgb_cameraR.save_image_png("R_")
+        rgb_cameraR.save_intensity_matrix()
 
 
 
@@ -494,6 +527,7 @@ def set_gpio(pin_num, turn_on):
 
 if __name__ == "__main__":
     time.sleep(0.5)
+    check_for_updates_and_restart()
     print("Starting Medical App...")
 
     led = WS2812BThread(pin_num=18, num_leds=2)

@@ -14,9 +14,10 @@ class CAMERA_DRIVER:
     ### resolution: tuple (width, height) for the camera resolution
     ### raspCam: boolean, True for Raspberry Pi Camera, False for USB Camera
     ### cameraID: integer, ID for the USB camera (any number) and pi cam (0 or 1) (default is 0)
-    def __init__(self, resolution=(640,480), raspCam=True, cameraID=0):
+    def __init__(self, resolution=(640,480), rotation=0, raspCam=True, cameraID=0):
         self.USE_PICAMERA = raspCam
         self.USB_CAMERA_ID = cameraID
+        self.frame_rotation = cv.ROTATE_90_CLOCKWISE if rotation == 90 else cv.ROTATE_90_COUNTERCLOCKWISE if (rotation == 270 or rotation == -90) else cv.ROTATE_180 if rotation == 180 else None
 
         if self.USE_PICAMERA:
             from picamera2 import Picamera2
@@ -40,6 +41,7 @@ class CAMERA_DRIVER:
         if self.USE_PICAMERA:
             rgb = self.picam2.capture_array()
             frame = cv.cvtColor(rgb, cv.COLOR_RGB2BGR)
+            frame = cv.rotate(frame, self.frame_rotation)
             self.temp_image = frame
             return True, frame
         else:
@@ -52,9 +54,9 @@ class CAMERA_DRIVER:
         os.makedirs(self.png_save_folder, exist_ok=True)
         os.makedirs(self.csv_save_folder, exist_ok=True)
         
-    def save_image_png(self):
+    def save_image_png(self, prefix=""):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filepath = os.path.join(self.png_save_folder, f"{timestamp}_rgb.png")
+        filepath = os.path.join(self.png_save_folder, f"{prefix}{timestamp}_rgb.png")
         cv.imwrite(filepath, self.temp_image)
 
     def save_intensity_matrix(self):

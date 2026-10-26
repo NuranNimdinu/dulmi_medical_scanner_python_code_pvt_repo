@@ -39,7 +39,7 @@
             height: 100%;
             box-sizing: border-box;
             padding: 16px;
-            max-width: 1400px;
+            max-width: 1600px; /* Slightly wider to accommodate 4 feeds nicely */
             margin: 0 auto;
         }
 
@@ -245,7 +245,7 @@
             font-weight: 500;
         }
 
-        /* Container for camera feeds - Flexbox handles 3 items easily */
+        /* Container for camera feeds - Flexbox handles 4 items easily */
         .feeds-container {
             display: flex;
             gap: 16px;
@@ -260,7 +260,7 @@
             background: #020617; /* Very dark background for feeds */
             border: 1px solid #334155;
             border-radius: var(--radius-smooth);
-            flex: 1; /* Makes all 3 wrappers take equal space */
+            flex: 1; /* Makes all 4 wrappers take equal space */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -488,29 +488,38 @@
         </div>
         
         <div class="feeds-container">
-            <!-- Feed 1: Left Thermal Cam -->
+            <!-- Feed 1: Thermal Left (tl) -->
             <div class="feed-wrapper">
-                <div class="feed-label">Left Thermal Cam</div>
-                <img id="img-t1" class="feed-img">
-                <div id="offline-t1" class="offline-overlay">
+                <div class="feed-label">Thermal Left</div>
+                <img id="img-tl" class="feed-img">
+                <div id="offline-tl" class="offline-overlay">
                     NO SIGNAL DETECTED
                 </div>
             </div>
             
-            <!-- Feed 2: RGB Cam -->
+            <!-- Feed 2: Thermal Right (tr) -->
             <div class="feed-wrapper">
-                <div class="feed-label">RGB Cam</div>
+                <div class="feed-label">Thermal Right</div>
+                <img id="img-tr" class="feed-img">
+                <div id="offline-tr" class="offline-overlay">
+                    NO SIGNAL DETECTED
+                </div>
+            </div>
+
+            <!-- Feed 3: RGB Left (cl) -->
+            <div class="feed-wrapper">
+                <div class="feed-label">RGB Left</div>
+                <img id="img-cl" class="feed-img">
+                <div id="offline-cl" class="offline-overlay">
+                    NO SIGNAL DETECTED
+                </div>
+            </div>
+            
+            <!-- Feed 4: RGB Right (cr) -->
+            <div class="feed-wrapper">
+                <div class="feed-label">RGB Right</div>
                 <img id="img-cr" class="feed-img">
                 <div id="offline-cr" class="offline-overlay">
-                    NO SIGNAL DETECTED
-                </div>
-            </div>
-            
-            <!-- Feed 3: Right Thermal Cam -->
-            <div class="feed-wrapper">
-                <div class="feed-label">Right Thermal Cam</div>
-                <img id="img-t2" class="feed-img">
-                <div id="offline-t2" class="offline-overlay">
                     NO SIGNAL DETECTED
                 </div>
             </div>
@@ -544,15 +553,18 @@
         let ws_status = document.getElementById("ws_con");
         let loader = document.getElementById("loader");
         
-        // Element bindings for 3 feeds
-        let imgT1 = document.getElementById("img-t1");
-        let offlineT1 = document.getElementById("offline-t1");
+        // Element bindings for 4 feeds
+        let imgTL = document.getElementById("img-tl");
+        let offlineTL = document.getElementById("offline-tl");
+        
+        let imgTR = document.getElementById("img-tr");
+        let offlineTR = document.getElementById("offline-tr");
+
+        let imgCL = document.getElementById("img-cl");
+        let offlineCL = document.getElementById("offline-cl");
         
         let imgCR = document.getElementById("img-cr");
         let offlineCR = document.getElementById("offline-cr");
-        
-        let imgT2 = document.getElementById("img-t2");
-        let offlineT2 = document.getElementById("offline-t2");
         
         let scanResultBox = document.getElementById("scan-result");
         let settingsContent = document.getElementById("settings-content");
@@ -562,9 +574,10 @@
         let latestSettingsData = null; // Store parsed JSON settings
         
         // Timeout trackers
-        let lastReceivedT1 = Date.now();
+        let lastReceivedTL = Date.now();
+        let lastReceivedTR = Date.now();
+        let lastReceivedCL = Date.now();
         let lastReceivedCR = Date.now();
-        let lastReceivedT2 = Date.now();
         const TIMEOUT_THRESHOLD = 10000; 
 
         function connectWS() {
@@ -594,13 +607,15 @@
                 document.getElementById("btn-live").classList.remove("active");
                 
                 // Show offline overlay for all feeds
-                offlineT1.style.display = "flex";
+                offlineTL.style.display = "flex";
+                offlineTR.style.display = "flex";
+                offlineCL.style.display = "flex";
                 offlineCR.style.display = "flex";
-                offlineT2.style.display = "flex";
                 
-                imgT1.removeAttribute('src'); 
+                imgTL.removeAttribute('src'); 
+                imgTR.removeAttribute('src'); 
+                imgCL.removeAttribute('src'); 
                 imgCR.removeAttribute('src'); 
-                imgT2.removeAttribute('src'); 
                 
                 setTimeout(connectWS, 5000);
             };
@@ -617,23 +632,28 @@
                         let parsedData = JSON.parse(data);
                         handle_rx_msg(parsedData);
                     } catch(e) {
-                        // Assuming binary image strings start with 2-char ID
+                        // Binary image strings start with 2-char ID
                         let type = data.slice(0,2);
                         
                         if (type === 'tl') {
-                            lastReceivedT1 = Date.now();
-                            offlineT1.style.display = "none";
-                            imgT1.src = "data:image/jpeg;base64," + data.slice(2);
+                            lastReceivedTL = Date.now();
+                            offlineTL.style.display = "none";
+                            imgTL.src = "data:image/jpeg;base64," + data.slice(2);
                         } 
+                        else if (type === 'tr') {
+                            lastReceivedTR = Date.now();
+                            offlineTR.style.display = "none";
+                            imgTR.src = "data:image/jpeg;base64," + data.slice(2);
+                        }
+                        else if (type === 'cl') {
+                            lastReceivedCL = Date.now();
+                            offlineCL.style.display = "none";
+                            imgCL.src = "data:image/jpeg;base64," + data.slice(2);
+                        }
                         else if (type === 'cr') {
                             lastReceivedCR = Date.now();
                             offlineCR.style.display = "none";
                             imgCR.src = "data:image/jpeg;base64," + data.slice(2);
-                        }
-                        else if (type === 'tr') {
-                            lastReceivedT2 = Date.now();
-                            offlineT2.style.display = "none";
-                            imgT2.src = "data:image/jpeg;base64," + data.slice(2);
                         }
                     }
                 }
@@ -665,17 +685,21 @@
             if (websocket && websocket.readyState === WebSocket.OPEN) {
                 let now = Date.now();
                 
-                if (now - lastReceivedT1 > TIMEOUT_THRESHOLD) {
-                    offlineT1.style.display = "flex";
-                    imgT1.removeAttribute('src');
+                if (now - lastReceivedTL > TIMEOUT_THRESHOLD) {
+                    offlineTL.style.display = "flex";
+                    imgTL.removeAttribute('src');
+                }
+                if (now - lastReceivedTR > TIMEOUT_THRESHOLD) {
+                    offlineTR.style.display = "flex";
+                    imgTR.removeAttribute('src');
+                }
+                if (now - lastReceivedCL > TIMEOUT_THRESHOLD) {
+                    offlineCL.style.display = "flex";
+                    imgCL.removeAttribute('src');
                 }
                 if (now - lastReceivedCR > TIMEOUT_THRESHOLD) {
                     offlineCR.style.display = "flex";
                     imgCR.removeAttribute('src');
-                }
-                if (now - lastReceivedT2 > TIMEOUT_THRESHOLD) {
-                    offlineT2.style.display = "flex";
-                    imgT2.removeAttribute('src');
                 }
             }
         }, 1000);
