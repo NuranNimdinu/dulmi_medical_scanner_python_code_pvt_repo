@@ -47,7 +47,7 @@ global_settings = {
 thermal_camera_L = MLX90640_CAM_DRIVER(0x32, "L")
 thermal_camera_R = MLX90640_CAM_DRIVER(0x33, "R")
 rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
-rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=1)
+rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
 
 
 class SERVER_DATA_STRUCT:
