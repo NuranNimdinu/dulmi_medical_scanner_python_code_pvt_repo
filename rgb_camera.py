@@ -42,7 +42,7 @@ class CAMERA_DRIVER:
             rgb = self.picam2.capture_array()
             frame = cv.cvtColor(rgb, cv.COLOR_RGB2BGR)
             frame = cv.rotate(frame, self.frame_rotation)
-            frame = cv.flip(frame, 0)
+            frame = cv.flip(frame, 1)
             self.temp_image = frame
             return True, frame
         else:
