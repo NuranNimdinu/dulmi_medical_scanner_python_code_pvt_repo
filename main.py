@@ -213,8 +213,8 @@ class ImageProcessWorker(threading.Thread):
             th_img_L = thermal_camera_L.get_image_with_temp_grd()
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
             
-            th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-            th_img_R = th_img_R[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
+            # th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
+            # th_img_R = th_img_R[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
 
             _, rgb_img_L = rgb_cameraL.capture()
             _, rgb_img_R = rgb_cameraR.capture()
@@ -542,8 +542,8 @@ if __name__ == "__main__":
     ## initialize the cameras
     thermal_camera_L = MLX90640_CAM_DRIVER(0x32, "L")
     thermal_camera_R = MLX90640_CAM_DRIVER(0x33, "R")
-    rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
-    rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
+    rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
+    rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
 
     ## initialize the server data structure
     server_data = SERVER_DATA_STRUCT()
