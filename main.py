@@ -54,8 +54,8 @@ class SERVER_DATA_STRUCT:
     wss_data_tx_q = queue.Queue(maxsize=10)
 
 
-crop_x, crop_y = int(480/4), int(640/4)      # Top-left corner of the crop area
-crop_w, crop_h = int(480/2), int(640/2)      # Width and height of the crop area
+crop_x, crop_y = int(100), int(120)      # Top-left corner of the crop area
+crop_w, crop_h = int(280), int(400)      # Width and height of the crop area
 
 ### useful functions
 def create_unique_folder(base_path, prefix="data"):
