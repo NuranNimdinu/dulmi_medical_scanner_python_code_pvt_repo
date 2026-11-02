@@ -54,8 +54,10 @@ class SERVER_DATA_STRUCT:
     wss_data_tx_q = queue.Queue(maxsize=10)
 
 
-crop_x, crop_y = int(100), int(120)      # Top-left corner of the crop area
-crop_w, crop_h = int(280), int(400)      # Width and height of the crop area
+crop_x, crop_y = 100, 120      # Top-left corner of the crop area
+crop_w, crop_h = 280, 400      # Width and height of the crop area
+
+flash_state = False
 
 ### useful functions
 def create_unique_folder(base_path, prefix="data"):
@@ -210,11 +212,19 @@ class ImageProcessWorker(threading.Thread):
 
         while not self._stop_worker.is_set():
             ## capture images
+            if self.is_scanning is True:
+                set_gpio(4, False)
+                time.sleep(0.2)
+
             th_img_L = thermal_camera_L.get_image_with_temp_grd()
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
             
             th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
             th_img_R = th_img_R[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
+
+            if self.is_scanning is True:
+                set_gpio(4, True)
+                time.sleep(0.5)
 
             _, rgb_img_L = rgb_cameraL.capture()
             _, rgb_img_R = rgb_cameraR.capture()
@@ -285,6 +295,7 @@ class ImageProcessWorker(threading.Thread):
         time.sleep(3)
         led.set_static_color(0x008000)
         ws_tx_str(json.dumps({"T":"STATUS", "DATA": "Ready!"}))
+        set_gpio(4, flash_state)
 
     def save_capture_data(self):
         self.current_scan_count += 1
@@ -355,6 +366,11 @@ def ws_rx_data_handler(data):
             print("Closing Camera")
             server_data.ws_camera_stream_on = False
 
+    elif data["T"] == "FLASH":
+        global flash_state
+        flash_state = not flash_state
+        set_gpio(4, flash_state)
+        
     elif data["T"] == "START":
         image_proc_tsk_handler.start_scan()
 
@@ -506,7 +522,7 @@ def check_app_ready():
         time.sleep(1)
 
     led.set_static_color(0x008000)
-    set_gpio(4, True)
+    set_gpio(4, flash_state)
 
 # Dictionary to keep the pin connections alive in memory
 _active_pins = {}

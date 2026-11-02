@@ -16,6 +16,7 @@
             --text-color: #f8fafc; /* Slate 50 */
             --text-muted: #94a3b8;
             --alert-color: #ef4444; /* Clinical Red */
+            --flash-color: #f59e0b; /* Amber/Yellow for Flashlight */
             --font-main: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             --radius-smooth: 12px;
         }
@@ -97,6 +98,18 @@
             border-color: var(--alert-color);
         }
 
+        /* Flashlight button active state */
+        .icon-btn.btn-flash.active {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--flash-color);
+            border-color: var(--flash-color);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .icon-btn.btn-flash.active svg {
+            fill: var(--flash-color);
+        }
+
         .icon-btn svg {
             width: 18px;
             height: 18px;
@@ -105,6 +118,7 @@
             fill: none;
             stroke-linecap: round;
             stroke-linejoin: round;
+            transition: fill 0.2s ease;
         }
 
         /* Clean medical title text */
@@ -448,12 +462,18 @@
                             <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
                             <line x1="12" y1="2" x2="12" y2="12"></line>
                         </svg>
-                    </button>
                     <!-- Settings Button -->
                     <button class="icon-btn" onclick="openSettings()" title="Settings">
                         <svg viewBox="0 0 24 24">
                             <circle cx="12" cy="12" r="3"></circle>
                             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                    </button>
+                    <!-- Flashlight Button -->
+                    <button id="btn-flash" class="icon-btn btn-flash" onclick="toggleFlash()" title="Toggle Flashlight">
+                        <svg viewBox="0 0 24 24">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                         </svg>
                     </button>
                     <!-- File Manager Button -->
@@ -571,6 +591,7 @@
         
         let websocket = null;
         let isLiveFeedActive = false; 
+        let isFlashActive = false; // Flashlight state tracker
         let latestSettingsData = null; // Store parsed JSON settings
         
         // Timeout trackers
@@ -592,10 +613,8 @@
                 // Fetch settings on connect (optional)
                 websocket.send(JSON.stringify({"T": "GET_SETTINGS"}));
                 
-                let btn = document.getElementById("btn-live");
-                isLiveFeedActive = true;
-                btn.classList.add("active");
-                camon();
+                toggleLiveFeed();
+                toggleFlash(); // Ensure flashlight state is synced
             };
 
             websocket.onclose = function () {
@@ -739,6 +758,21 @@
                 if (websocket && websocket.readyState === WebSocket.OPEN) {
                     websocket.send(JSON.stringify({"T": "POWER"}));
                 }
+            }
+        }
+
+        function toggleFlash() {
+            let btnFlash = document.getElementById("btn-flash");
+            isFlashActive = !isFlashActive;
+            
+            if (isFlashActive) {
+                btnFlash.classList.add("active");
+            } else {
+                btnFlash.classList.remove("active");
+            }
+
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({"T": "FLASH"}));
             }
         }
 
