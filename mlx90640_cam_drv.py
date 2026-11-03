@@ -89,6 +89,8 @@ class MLX90640_CAM_DRIVER:
             if self.crop_w > 0 and self.crop_h > 0:
                 heat_image = heat_image[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
 
+            heat_image = self.resize_with_pad(heat_image, self.rgb_frame_size)
+
             return heat_image
 
         except Exception as e:
