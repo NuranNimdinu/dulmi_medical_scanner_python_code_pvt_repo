@@ -69,7 +69,7 @@ class MLX90640_CAM_DRIVER:
 
             self.mlx.getFrame(tframe)
             
-            tframe[874] = (tframe[874 - 1] + tframe[874 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
+            tframe[767] = (tframe[767 - 1] + tframe[767 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
 
