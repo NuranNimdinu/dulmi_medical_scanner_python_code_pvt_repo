@@ -59,50 +59,6 @@ class MLX90640_CAM_DRIVER:
         self.crop_w = w
         self.crop_h = h
 
-    # def get_image(self):
-    #     try:
-    #         if not self.mlx.data_ready():
-    #             return None
-            
-    #         tframe = np.zeros((24*32,))
-
-    #         self.mlx.getFrame(tframe)
-            
-    #         tframe = np.reshape(tframe, (24,32))
-    #         tframe = np.rot90(tframe, k=1)
-
-    #         self.temp_raw_frame = tframe
-
-    #         # Keep these if you need them for text display/UI, 
-    #         # but do NOT use them for image normalization anymore.
-    #         self.max_temp = tframe.max()
-    #         self.min_temp = tframe.min()
-
-    #         # --- NEW PROCESSING PIPELINE ---
-            
-    #         # 1. Clip the temperatures to human foot vs room temperature.
-    #         # Adjust these values if your room is hotter/colder.
-    #         temp_min = self.MIN_MAX_TEMP[0]
-    #         temp_max = self.MIN_MAX_TEMP[1]
-    #         clipped_tframe = np.clip(tframe, temp_min, temp_max)
-
-    #         # 2. Normalize to 0-255 using the FIXED range. 
-    #         # This ensures 36C is always max color, and 24C is always minimum color.
-    #         gray_frame = np.uint8((clipped_tframe - temp_min) * 255.0 / (temp_max - temp_min)) 
-
-    #         # 3. Resize the grayscale image BEFORE applying color.
-    #         # IMPORTANT: Ensure self.resize_with_pad uses cv2.INTER_CUBIC internally!
-    #         resized_gray = self.resize_with_pad(gray_frame, self.rgb_frame_size)
-            
-    #         # 4. Apply a uniform colormap (INFERNO or MAGMA) to eliminate fake heat edges.
-    #         heat_image = cv2.applyColorMap(resized_gray, cv2.COLORMAP_JET)
-
-    #         return heat_image
-
-    #     except Exception as e:
-    #         print(f"Thermal Camera Error: {e}")
-    #         return None
-
     def get_image(self):
         try:
             if not self.mlx.data_ready():
@@ -115,6 +71,9 @@ class MLX90640_CAM_DRIVER:
             # tframe[290] = (tframe[290 - 1] + tframe[290 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
+
+            if self.crop_w > 0 and self.crop_h > 0:
+                tframe = tframe[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
 
             self.temp_raw_frame = tframe
 
@@ -129,7 +88,6 @@ class MLX90640_CAM_DRIVER:
             # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
             heat_image = cv2.applyColorMap(heat_image, cv2.COLORMAP_JET)
             
-            heat_image = heat_image[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
 
             return heat_image
 
