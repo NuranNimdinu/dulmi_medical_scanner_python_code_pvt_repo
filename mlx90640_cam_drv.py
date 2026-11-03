@@ -70,10 +70,7 @@ class MLX90640_CAM_DRIVER:
 
             self.mlx.getFrame(tframe)
 
-            tframe[766] = tframe[0]
-            tframe[767] = tframe[0]
-            tframe[744] = tframe[0]
-            print(f"{self.filename_prefix} {tframe}") ##debug
+            tframe[tframe < 24.0] = 24.0
 
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
