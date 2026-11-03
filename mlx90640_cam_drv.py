@@ -1,3 +1,4 @@
+from doctest import debug
 import time
 import busio
 import board
@@ -69,13 +70,11 @@ class MLX90640_CAM_DRIVER:
 
             self.mlx.getFrame(tframe)
 
-            # Fix Pixel 766 (Second to last pixel: Row 23, Col 30)
-            # Average the healthy pixel to its left (765) and the healthy pixel above it (734)
-            tframe[766] = (tframe[765] + tframe[766 - 32]) / 2.0
+            tframe[766] = tframe[0]
+            tframe[767] = tframe[0]
+            tframe[744] = tframe[0]
+            print(f"{self.filename_prefix} {tframe}") ##debug
 
-            # Fix Pixel 767 (The very last pixel: Row 23, Col 31)
-            # Average the newly fixed pixel to its left (766) and the healthy pixel above it (735)
-            tframe[767] = (tframe[766] + tframe[767 - 32]) / 2.0
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
 
