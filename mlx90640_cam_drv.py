@@ -109,9 +109,11 @@ class MLX90640_CAM_DRIVER:
 
             self.temp_raw_frame = tframe
 
-            self.max_temp = tframe.max()
-            self.min_temp = tframe.min()
-            rgb_frame = np.uint8((tframe - self.min_temp) * 255 / (self.max_temp - self.min_temp)) ## mapping to 0 - 255
+            # self.max_temp = tframe.max()
+            # self.min_temp = tframe.min()
+            # rgb_frame = np.uint8((tframe - self.min_temp) * 255 / (self.max_temp - self.min_temp)) ## mapping to 0 - 255
+            
+            rgb_frame = np.uint8((tframe - self.MIN_MAX_TEMP[0]) * 255 / (self.MIN_MAX_TEMP[1] - self.MIN_MAX_TEMP[0])) ## mapping to 0 - 255
 
             heat_image = self.resize_with_pad(rgb_frame, self.rgb_frame_size)
             # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
