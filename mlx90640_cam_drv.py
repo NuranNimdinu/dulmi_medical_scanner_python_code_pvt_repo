@@ -25,6 +25,9 @@ class MLX90640_CAM_DRIVER:
     png_save_folder = "thermal_png"
     filename_prefix = ""
 
+    crop_x, crop_y = 140, 170      # Top-left corner of the crop area
+    crop_w, crop_h = 200, 310      # Width and height of the crop area
+
     def __init__(self, dev_addr = 0x33, file_name_p = "T", MIN_MAX_TEMP = (24.0, 36.0)):
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.mlx = adafruit_mlx90640.MLX90640(self.i2c, dev_addr)
@@ -83,8 +86,8 @@ class MLX90640_CAM_DRIVER:
             # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
             heat_image = cv2.applyColorMap(heat_image, cv2.COLORMAP_JET)
             
-            # if self.crop_w > 0 and self.crop_h > 0:
-            #     heat_image = heat_image[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
+            if self.crop_w > 0 and self.crop_h > 0:
+                heat_image = heat_image[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
 
             return heat_image
 
@@ -96,7 +99,7 @@ class MLX90640_CAM_DRIVER:
         t_img = self.get_image();
 
         if t_img is None:
-            return None
+            return self.temp_png_frame
         
         text = 'Tmin = {:+.1f} Tmax = {:+.1f}'.format(self.get_min_temp(), self.get_max_temp())
         cv2.putText(t_img, text, (50, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 1)

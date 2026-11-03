@@ -218,8 +218,8 @@ class ImageProcessWorker(threading.Thread):
             th_img_L = thermal_camera_L.get_image_with_temp_grd()
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
             
-            th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-            th_img_R = th_img_R[crop_y+80:crop_y+crop_h+80, crop_x:crop_x+crop_w]
+            # th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
+            # th_img_R = th_img_R[crop_y+80:crop_y+crop_h+80, crop_x:crop_x+crop_w]
 
             if self.is_scanning is True:
                 set_gpio(4, True)
@@ -563,8 +563,8 @@ if __name__ == "__main__":
     rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
     rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
 
-    # thermal_camera_L.set_crop_range(*ast.literal_eval(global_settings["thermal L image crop"]))
-    # thermal_camera_R.set_crop_range(*ast.literal_eval(global_settings["thermal R image crop"]))
+    thermal_camera_L.set_crop_range(crop_x, crop_y, crop_w, crop_h)
+    thermal_camera_R.set_crop_range(crop_x, crop_y+80, crop_w, crop_h)
 
     ## initialize the server data structure
     server_data = SERVER_DATA_STRUCT()
