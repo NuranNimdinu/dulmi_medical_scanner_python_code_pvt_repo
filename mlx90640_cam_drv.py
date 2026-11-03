@@ -69,10 +69,13 @@ class MLX90640_CAM_DRIVER:
 
             self.mlx.getFrame(tframe)
 
-            print(f"frame size {self.filename_prefix}: {tframe.size}")  # Debugging line to print the size of the frame
-            print(f"Raw frame data {self.filename_prefix}: {tframe}")  # Debugging line to print the raw frame data
-            
-            tframe[767] = (tframe[767 - 1] + tframe[767 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
+            # Fix Pixel 766 (Second to last pixel: Row 23, Col 30)
+            # Average the healthy pixel to its left (765) and the healthy pixel above it (734)
+            tframe[766] = (tframe[765] + tframe[766 - 32]) / 2.0
+
+            # Fix Pixel 767 (The very last pixel: Row 23, Col 31)
+            # Average the newly fixed pixel to its left (766) and the healthy pixel above it (735)
+            tframe[767] = (tframe[766] + tframe[767 - 32]) / 2.0
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
 
