@@ -86,7 +86,7 @@ class MLX90640_CAM_DRIVER:
             resized_gray = self.resize_with_pad(gray_frame, self.rgb_frame_size)
             
             # 4. Apply a uniform colormap (INFERNO or MAGMA) to eliminate fake heat edges.
-            heat_image = cv2.applyColorMap(resized_gray, cv2.COLORMAP_INFERNO)
+            heat_image = cv2.applyColorMap(resized_gray, cv2.COLORMAP_JET)
 
             return heat_image
 
