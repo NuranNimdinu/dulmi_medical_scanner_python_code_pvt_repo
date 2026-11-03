@@ -29,7 +29,7 @@ class MLX90640_CAM_DRIVER:
     crop_x, crop_y = 140, 170      # Top-left corner of the crop area
     crop_w, crop_h = 200, 310      # Width and height of the crop area
 
-    def __init__(self, dev_addr = 0x33, file_name_p = "T", MIN_MAX_TEMP = (24.0, 36.0)):
+    def __init__(self, dev_addr = 0x33, file_name_p = "T", MIN_MAX_TEMP = (25.0, 36.0)):
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.mlx = adafruit_mlx90640.MLX90640(self.i2c, dev_addr)
         self.mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_1_HZ
@@ -70,7 +70,7 @@ class MLX90640_CAM_DRIVER:
 
             self.mlx.getFrame(tframe)
 
-            tframe[tframe < 24.0] = 24.0
+            tframe[tframe < self.MIN_MAX_TEMP[0]] = self.MIN_MAX_TEMP[0]
 
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
