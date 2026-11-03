@@ -72,9 +72,6 @@ class MLX90640_CAM_DRIVER:
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
 
-            if self.crop_w > 0 and self.crop_h > 0:
-                tframe = tframe[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
-
             self.temp_raw_frame = tframe
 
             self.max_temp = tframe.max()
@@ -88,6 +85,8 @@ class MLX90640_CAM_DRIVER:
             # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
             heat_image = cv2.applyColorMap(heat_image, cv2.COLORMAP_JET)
             
+            if self.crop_w > 0 and self.crop_h > 0:
+                heat_image = heat_image[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
 
             return heat_image
 
