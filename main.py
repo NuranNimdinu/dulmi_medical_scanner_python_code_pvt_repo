@@ -216,6 +216,10 @@ class ImageProcessWorker(threading.Thread):
 
             th_img_L = thermal_camera_L.get_image_with_temp_grd()
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
+            
+            th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
+            crop_y += 80
+            th_img_R = th_img_R[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
 
             if self.is_scanning is True:
                 set_gpio(4, True)
