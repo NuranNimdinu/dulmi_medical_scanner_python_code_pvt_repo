@@ -25,6 +25,9 @@ class MLX90640_CAM_DRIVER:
     png_save_folder = "thermal_png"
     filename_prefix = ""
 
+    crop_x, crop_y = 120, 150      # Top-left corner of the crop area
+    crop_w, crop_h = 240, 350      # Width and height of the crop area
+
     def __init__(self, dev_addr = 0x33, file_name_p = "T", MIN_MAX_TEMP = (24.0, 36.0)):
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.mlx = adafruit_mlx90640.MLX90640(self.i2c, dev_addr)
@@ -49,6 +52,12 @@ class MLX90640_CAM_DRIVER:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filepath = os.path.join(self.png_save_folder, f"{self.filename_prefix}_thermal_img_{timestamp}.png")
         cv2.imwrite(filepath, self.temp_png_frame)
+
+    def set_crop_range(self, x, y, w, h):
+        self.crop_x = x
+        self.crop_y = y
+        self.crop_w = w
+        self.crop_h = h
 
     # def get_image(self):
     #     try:
@@ -119,6 +128,8 @@ class MLX90640_CAM_DRIVER:
             heat_image = self.resize_with_pad(rgb_frame, self.rgb_frame_size)
             # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
             heat_image = cv2.applyColorMap(heat_image, cv2.COLORMAP_JET)
+            
+            heat_image = heat_image[self.crop_y:self.crop_y+self.crop_h, self.crop_x:self.crop_x+self.crop_w]
 
             return heat_image
 

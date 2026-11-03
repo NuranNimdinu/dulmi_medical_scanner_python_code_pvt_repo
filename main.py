@@ -42,6 +42,11 @@ global_settings = {
     "THERMAL_MODEL_PATH" : "/home/rasp3/project/medical_scanner/image_models/best_thermal_model.keras",
     "RGB_MODEL_PATH" : "/home/rasp3/project/medical_scanner/image_models/dfu_resnet50_model.keras",
     "save_images_base_path" : "medical_scanner_data/",
+    "thermal image crop x" : 120,
+    "thermal image crop y" : 150,
+    "thermal image crop width" : 240,
+    "thermal image crop height" : 350,
+    "test" : [43,535,53]
 }
 
 
@@ -52,10 +57,6 @@ class SERVER_DATA_STRUCT:
     ws_camera_stream_task:asyncio.Task
     wss_camera_feed_q = queue.Queue(maxsize=10)
     wss_data_tx_q = queue.Queue(maxsize=10)
-
-
-crop_x, crop_y = 120, 150      # Top-left corner of the crop area
-crop_w, crop_h = 240, 350      # Width and height of the crop area
 
 flash_state = False
 
@@ -218,9 +219,6 @@ class ImageProcessWorker(threading.Thread):
 
             th_img_L = thermal_camera_L.get_image_with_temp_grd()
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
-            
-            th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-            th_img_R = th_img_R[crop_y+80:crop_y+80+crop_h, crop_x:crop_x+crop_w]
 
             if self.is_scanning is True:
                 set_gpio(4, True)
@@ -560,6 +558,9 @@ if __name__ == "__main__":
     thermal_camera_R = MLX90640_CAM_DRIVER(0x33, "R", (global_settings["MIN_TEMP"], global_settings["MAX_TEMP"]))
     rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
     rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
+
+    thermal_camera_L.set_crop_range(global_settings["thermal image crop x"], global_settings["thermal image crop y"], global_settings["thermal image crop width"], global_settings["thermal image crop height"])
+    thermal_camera_R.set_crop_range(global_settings["thermal image crop x"], global_settings["thermal image crop y"], global_settings["thermal image crop width"], global_settings["thermal image crop height"])
 
     ## initialize the server data structure
     server_data = SERVER_DATA_STRUCT()
