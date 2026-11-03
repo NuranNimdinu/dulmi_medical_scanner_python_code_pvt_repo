@@ -17,7 +17,7 @@ import re
 import sys
 import subprocess
 from gpiozero import DigitalOutputDevice
-
+import ast
 import tensorflow as tf
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -42,8 +42,8 @@ global_settings = {
     "THERMAL_MODEL_PATH" : "/home/rasp3/project/medical_scanner/image_models/best_thermal_model.keras",
     "RGB_MODEL_PATH" : "/home/rasp3/project/medical_scanner/image_models/dfu_resnet50_model.keras",
     "save_images_base_path" : "medical_scanner_data/",
-    "thermal L image crop" : [0, 0, 0, 0],
-    "thermal R image crop" : [0, 0, 0, 0],
+    "thermal L image crop" : "[0, 0, 0, 0]",
+    "thermal R image crop" : "[0, 0, 0, 0]",
 }
 
 
@@ -379,8 +379,8 @@ def ws_rx_data_handler(data):
         global_settings.update(data)
         json_cfg.save()
 
-        thermal_camera_L.set_crop_range(*global_settings["thermal L image crop"])
-        thermal_camera_R.set_crop_range(*global_settings["thermal R image crop"])
+        thermal_camera_L.set_crop_range(*ast.literal_eval(global_settings["thermal L image crop"]))
+        thermal_camera_R.set_crop_range(*ast.literal_eval(global_settings["thermal R image crop"]))
         print("saving json settings")
 
 
@@ -559,8 +559,8 @@ if __name__ == "__main__":
     rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
     rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
 
-    thermal_camera_L.set_crop_range(*global_settings["thermal L image crop"])
-    thermal_camera_R.set_crop_range(*global_settings["thermal R image crop"])
+    thermal_camera_L.set_crop_range(*ast.literal_eval(global_settings["thermal L image crop"]))
+    thermal_camera_R.set_crop_range(*ast.literal_eval(global_settings["thermal R image crop"]))
 
     ## initialize the server data structure
     server_data = SERVER_DATA_STRUCT()
