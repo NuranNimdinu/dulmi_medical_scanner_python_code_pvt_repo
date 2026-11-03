@@ -29,13 +29,13 @@ class MLX90640_CAM_DRIVER:
     crop_x, crop_y = 140, 170      # Top-left corner of the crop area
     crop_w, crop_h = 200, 310      # Width and height of the crop area
 
-    def __init__(self, dev_addr = 0x33, file_name_p = "T", MIN_MAX_TEMP = (25.0, 36.0)):
+    def __init__(self, dev_addr = 0x33, file_name_p = "T", min_max_temp = (25.0, 36.0)):
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.mlx = adafruit_mlx90640.MLX90640(self.i2c, dev_addr)
         self.mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_1_HZ
         # self.mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_4_HZ
         self.filename_prefix = file_name_p
-        self.MIN_MAX_TEMP = MIN_MAX_TEMP
+        self.min_max_temp = min_max_temp
 
     def change_csv_save_path(self, png_path, csv_path):
         self.png_save_folder = png_path
@@ -70,7 +70,7 @@ class MLX90640_CAM_DRIVER:
 
             self.mlx.getFrame(tframe)
 
-            tframe[tframe < self.MIN_MAX_TEMP[0]] = self.MIN_MAX_TEMP[0]
+            tframe[tframe < self.min_max_temp[0]] = self.min_max_temp[0]
 
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
@@ -81,8 +81,8 @@ class MLX90640_CAM_DRIVER:
             self.min_temp = tframe.min()
             rgb_frame = np.uint8((tframe - self.min_temp) * 255 / (self.max_temp - self.min_temp)) ## mapping to 0 - 255
             
-            # tframe = np.clip(tframe, self.MIN_MAX_TEMP[0], self.MIN_MAX_TEMP[1])
-            # rgb_frame = np.uint8((tframe - self.MIN_MAX_TEMP[0]) * 255 / (self.MIN_MAX_TEMP[1] - self.MIN_MAX_TEMP[0])) ## mapping to 0 - 255
+            # tframe = np.clip(tframe, self.min_max_temp[0], self.min_max_temp[1])
+            # rgb_frame = np.uint8((tframe - self.min_max_temp[0]) * 255 / (self.min_max_temp[1] - self.min_max_temp[0])) ## mapping to 0 - 255
 
             heat_image = self.resize_with_pad(rgb_frame, self.rgb_frame_size)
             # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
