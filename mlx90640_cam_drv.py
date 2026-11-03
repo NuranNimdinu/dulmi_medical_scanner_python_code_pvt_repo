@@ -50,6 +50,50 @@ class MLX90640_CAM_DRIVER:
         filepath = os.path.join(self.png_save_folder, f"{self.filename_prefix}_thermal_img_{timestamp}.png")
         cv2.imwrite(filepath, self.temp_png_frame)
 
+    # def get_image(self):
+    #     try:
+    #         if not self.mlx.data_ready():
+    #             return None
+            
+    #         tframe = np.zeros((24*32,))
+
+    #         self.mlx.getFrame(tframe)
+            
+    #         tframe = np.reshape(tframe, (24,32))
+    #         tframe = np.rot90(tframe, k=1)
+
+    #         self.temp_raw_frame = tframe
+
+    #         # Keep these if you need them for text display/UI, 
+    #         # but do NOT use them for image normalization anymore.
+    #         self.max_temp = tframe.max()
+    #         self.min_temp = tframe.min()
+
+    #         # --- NEW PROCESSING PIPELINE ---
+            
+    #         # 1. Clip the temperatures to human foot vs room temperature.
+    #         # Adjust these values if your room is hotter/colder.
+    #         temp_min = self.MIN_MAX_TEMP[0]
+    #         temp_max = self.MIN_MAX_TEMP[1]
+    #         clipped_tframe = np.clip(tframe, temp_min, temp_max)
+
+    #         # 2. Normalize to 0-255 using the FIXED range. 
+    #         # This ensures 36C is always max color, and 24C is always minimum color.
+    #         gray_frame = np.uint8((clipped_tframe - temp_min) * 255.0 / (temp_max - temp_min)) 
+
+    #         # 3. Resize the grayscale image BEFORE applying color.
+    #         # IMPORTANT: Ensure self.resize_with_pad uses cv2.INTER_CUBIC internally!
+    #         resized_gray = self.resize_with_pad(gray_frame, self.rgb_frame_size)
+            
+    #         # 4. Apply a uniform colormap (INFERNO or MAGMA) to eliminate fake heat edges.
+    #         heat_image = cv2.applyColorMap(resized_gray, cv2.COLORMAP_JET)
+
+    #         return heat_image
+
+    #     except Exception as e:
+    #         print(f"Thermal Camera Error: {e}")
+    #         return None
+
     def get_image(self):
         try:
             if not self.mlx.data_ready():
@@ -59,72 +103,25 @@ class MLX90640_CAM_DRIVER:
 
             self.mlx.getFrame(tframe)
             
+            # tframe[290] = (tframe[290 - 1] + tframe[290 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
 
             self.temp_raw_frame = tframe
 
-            # Keep these if you need them for text display/UI, 
-            # but do NOT use them for image normalization anymore.
             self.max_temp = tframe.max()
             self.min_temp = tframe.min()
+            rgb_frame = np.uint8((tframe - self.min_temp) * 255 / (self.max_temp - self.min_temp)) ## mapping to 0 - 255
 
-            # --- NEW PROCESSING PIPELINE ---
-            
-            # 1. Clip the temperatures to human foot vs room temperature.
-            # Adjust these values if your room is hotter/colder.
-            temp_min = self.MIN_MAX_TEMP[0]
-            temp_max = self.MIN_MAX_TEMP[1]
-            clipped_tframe = np.clip(tframe, temp_min, temp_max)
-
-            # 2. Normalize to 0-255 using the FIXED range. 
-            # This ensures 36C is always max color, and 24C is always minimum color.
-            gray_frame = np.uint8((clipped_tframe - temp_min) * 255.0 / (temp_max - temp_min)) 
-
-            # 3. Resize the grayscale image BEFORE applying color.
-            # IMPORTANT: Ensure self.resize_with_pad uses cv2.INTER_CUBIC internally!
-            resized_gray = self.resize_with_pad(gray_frame, self.rgb_frame_size)
-            
-            # 4. Apply a uniform colormap (INFERNO or MAGMA) to eliminate fake heat edges.
-            heat_image = cv2.applyColorMap(resized_gray, cv2.COLORMAP_JET)
+            heat_image = self.resize_with_pad(rgb_frame, self.rgb_frame_size)
+            # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
+            heat_image = cv2.applyColorMap(heat_image, cv2.COLORMAP_JET)
 
             return heat_image
 
         except Exception as e:
-            print(f"Thermal Camera Error: {e}")
+            print(f"error : {e}")
             return None
-
-    # def get_image(self):
-    #     try:
-    #         if not self.mlx.data_ready():
-    #             return None
-            
-    #         tframe = np.zeros((24*32,))
-
-    #         try:
-    #             self.mlx.getFrame(tframe)
-    #         except Exception as e:
-    #             return None
-            
-    #         # tframe[290] = (tframe[290 - 1] + tframe[290 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
-    #         tframe = np.reshape(tframe, (24,32))
-    #         tframe = np.rot90(tframe, k=1)
-
-    #         self.temp_raw_frame = tframe
-
-    #         self.max_temp = tframe.max()
-    #         self.min_temp = tframe.min()
-    #         rgb_frame = np.uint8((tframe - self.min_temp) * 255 / (self.max_temp - self.min_temp)) ## mapping to 0 - 255
-
-    #         heat_image = self.resize_with_pad(rgb_frame, self.rgb_frame_size)
-    #         # COLORMAP_INFERNO (black/purple/orange/yellow) and COLORMAP_JET (blue/green/red) are the best choices
-    #         heat_image = cv2.applyColorMap(heat_image, cv2.COLORMAP_JET)
-
-    #         return heat_image
-
-    #     except Exception as e:
-    #         print(f"error : {e}")
-    #         return None
         
     def get_image_with_temp_grd(self):
         t_img = self.get_image();
