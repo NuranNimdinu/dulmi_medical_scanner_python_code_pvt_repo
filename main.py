@@ -46,7 +46,7 @@ global_settings = {
 
 
 crop_x, crop_y = 140, 250      # Top-left corner of the crop area
-crop_w, crop_h = 200, 310      # Width and height of the crop area
+crop_w, crop_h = 200, 250      # Width and height of the crop area
 
 class SERVER_DATA_STRUCT:
     ws_client_connected = False
