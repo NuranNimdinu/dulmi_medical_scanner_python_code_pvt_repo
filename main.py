@@ -42,10 +42,11 @@ global_settings = {
     "THERMAL_MODEL_PATH" : "/home/rasp3/project/medical_scanner/image_models/best_thermal_model.keras",
     "RGB_MODEL_PATH" : "/home/rasp3/project/medical_scanner/image_models/dfu_resnet50_model.keras",
     "save_images_base_path" : "medical_scanner_data/",
-    "thermal L image crop" : "[0, 0, 0, 0]",
-    "thermal R image crop" : "[0, 0, 0, 0]",
 }
 
+
+crop_x, crop_y = 120, 150      # Top-left corner of the crop area
+crop_w, crop_h = 240, 350      # Width and height of the crop area
 
 class SERVER_DATA_STRUCT:
     ws_client_connected = False
@@ -218,8 +219,7 @@ class ImageProcessWorker(threading.Thread):
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
             
             th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-            crop_y += 80
-            th_img_R = th_img_R[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
+            th_img_R = th_img_R[crop_y+80:crop_y+crop_h+80, crop_x:crop_x+crop_w]
 
             if self.is_scanning is True:
                 set_gpio(4, True)
@@ -383,8 +383,8 @@ def ws_rx_data_handler(data):
         global_settings.update(data)
         json_cfg.save()
 
-        thermal_camera_L.set_crop_range(*ast.literal_eval(global_settings["thermal L image crop"]))
-        thermal_camera_R.set_crop_range(*ast.literal_eval(global_settings["thermal R image crop"]))
+        # thermal_camera_L.set_crop_range(*ast.literal_eval(global_settings["thermal L image crop"]))
+        # thermal_camera_R.set_crop_range(*ast.literal_eval(global_settings["thermal R image crop"]))
         print("saving json settings")
 
 
@@ -563,8 +563,8 @@ if __name__ == "__main__":
     rgb_cameraL = CAMERA_DRIVER((1280, 720), rotation=90, raspCam=True, cameraID=1)
     rgb_cameraR = CAMERA_DRIVER((1280, 720), rotation=-90, raspCam=True, cameraID=0)
 
-    thermal_camera_L.set_crop_range(*ast.literal_eval(global_settings["thermal L image crop"]))
-    thermal_camera_R.set_crop_range(*ast.literal_eval(global_settings["thermal R image crop"]))
+    # thermal_camera_L.set_crop_range(*ast.literal_eval(global_settings["thermal L image crop"]))
+    # thermal_camera_R.set_crop_range(*ast.literal_eval(global_settings["thermal R image crop"]))
 
     ## initialize the server data structure
     server_data = SERVER_DATA_STRUCT()
