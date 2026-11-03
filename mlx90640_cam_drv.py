@@ -68,12 +68,8 @@ class MLX90640_CAM_DRIVER:
             tframe = np.zeros((24*32,))
 
             self.mlx.getFrame(tframe)
-
-            print("Raw frame data:", tframe)  # Debug: Print the raw frame data
-            while(1):
-                time.sleep(1)
             
-            tframe[25] = (tframe[25 - 1] + tframe[25 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
+            tframe[874] = (tframe[874 - 1] + tframe[874 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
             tframe = np.reshape(tframe, (24,32))
             tframe = np.rot90(tframe, k=1)
 
