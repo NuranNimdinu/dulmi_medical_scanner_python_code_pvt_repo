@@ -32,7 +32,7 @@ class MLX90640_CAM_DRIVER:
     def __init__(self, dev_addr = 0x33, file_name_p = "T", min_max_temp = (25.0, 36.0)):
         self.i2c = busio.I2C(board.SCL, board.SDA)
         self.mlx = adafruit_mlx90640.MLX90640(self.i2c, dev_addr)
-        self.mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_1_HZ
+        self.mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_0_5_HZ
         # self.mlx.refresh_rate = adafruit_mlx90640.RefreshRate.REFRESH_4_HZ
         self.filename_prefix = file_name_p
         self.min_max_temp = min_max_temp
