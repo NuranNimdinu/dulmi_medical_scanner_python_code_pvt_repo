@@ -68,6 +68,9 @@ class MLX90640_CAM_DRIVER:
             tframe = np.zeros((24*32,))
 
             self.mlx.getFrame(tframe)
+
+            print(f"frame size {self.filename_prefix}: {tframe.size}")  # Debugging line to print the size of the frame
+            print(f"Raw frame data {self.filename_prefix}: {tframe}")  # Debugging line to print the raw frame data
             
             tframe[767] = (tframe[767 - 1] + tframe[767 + 1]) / 2  ## replace the bad pixel with the average of its neighbors
             tframe = np.reshape(tframe, (24,32))
