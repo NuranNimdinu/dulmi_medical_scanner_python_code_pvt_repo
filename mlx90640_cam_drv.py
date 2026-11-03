@@ -27,7 +27,7 @@ class MLX90640_CAM_DRIVER:
     filename_prefix = ""
 
     crop_x, crop_y = 140, 250      # Top-left corner of the crop area
-    crop_w, crop_h = 200, 310      # Width and height of the crop area
+    crop_w, crop_h = 200, 250      # Width and height of the crop area
 
     def __init__(self, dev_addr = 0x33, file_name_p = "T", min_max_temp = (25.0, 36.0)):
         self.i2c = busio.I2C(board.SCL, board.SDA)
