@@ -113,6 +113,7 @@ class MLX90640_CAM_DRIVER:
             # self.min_temp = tframe.min()
             # rgb_frame = np.uint8((tframe - self.min_temp) * 255 / (self.max_temp - self.min_temp)) ## mapping to 0 - 255
             
+            tframe = np.clip(tframe, self.MIN_MAX_TEMP[0], self.MIN_MAX_TEMP[1])
             rgb_frame = np.uint8((tframe - self.MIN_MAX_TEMP[0]) * 255 / (self.MIN_MAX_TEMP[1] - self.MIN_MAX_TEMP[0])) ## mapping to 0 - 255
 
             heat_image = self.resize_with_pad(rgb_frame, self.rgb_frame_size)
