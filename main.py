@@ -54,8 +54,8 @@ class SERVER_DATA_STRUCT:
     wss_data_tx_q = queue.Queue(maxsize=10)
 
 
-crop_x, crop_y = 100, 120      # Top-left corner of the crop area
-crop_w, crop_h = 280, 400      # Width and height of the crop area
+crop_x, crop_y = 120, 150      # Top-left corner of the crop area
+crop_w, crop_h = 240, 350      # Width and height of the crop area
 
 flash_state = False
 
@@ -220,7 +220,7 @@ class ImageProcessWorker(threading.Thread):
             th_img_R = thermal_camera_R.get_image_with_temp_grd()
             
             th_img_L = th_img_L[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
-            crop_y += 100
+            crop_y += 80
             th_img_R = th_img_R[crop_y:crop_y+crop_h, crop_x:crop_x+crop_w]
 
             if self.is_scanning is True:
